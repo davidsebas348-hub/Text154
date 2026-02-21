@@ -1,11 +1,10 @@
 -- ======================
--- ESP INNOCENT (TOGGLE POR EJECUCIÓN)
+-- ESP INNOCENT (OPTIMIZADO SIN LOOP)
 -- ======================
 
 if not game:IsLoaded() then game.Loaded:Wait() end
 
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
 -- ======================
@@ -14,26 +13,19 @@ local LocalPlayer = Players.LocalPlayer
 _G.InnocentESP = not _G.InnocentESP
 
 -- ======================
--- FUNCIÓN LIMPIAR TODO
+-- LIMPIAR ESP
 -- ======================
-local function ClearESP()
-	for _, plr in ipairs(Players:GetPlayers()) do
-		if plr.Character then
-			local h = plr.Character:FindFirstChild("InnocentESP")
-			if h then h:Destroy() end
-		end
+local function clearESP(player)
+	if player.Character then
+		local h = player.Character:FindFirstChild("InnocentESP")
+		if h then h:Destroy() end
 	end
 end
 
--- ======================
--- SI SE DESACTIVA
--- ======================
 if not _G.InnocentESP then
-	if _G.InnocentESPConnection then
-		_G.InnocentESPConnection:Disconnect()
-		_G.InnocentESPConnection = nil
+	for _, plr in ipairs(Players:GetPlayers()) do
+		clearESP(plr)
 	end
-	ClearESP()
 	warn("❌ ESP INNOCENT DESACTIVADO")
 	return
 end
@@ -41,10 +33,10 @@ end
 warn("✅ ESP INNOCENT ACTIVADO")
 
 -- ======================
--- FUNCIONES
+-- VERIFICAR INNOCENT
 -- ======================
 local function isInnocent(player)
-	if not player then return false end
+
 	local hasKnife = false
 	local hasGun = false
 
@@ -52,8 +44,12 @@ local function isInnocent(player)
 		if not container then return end
 		for _, t in ipairs(container:GetChildren()) do
 			if t:IsA("Tool") then
-				if t.Name == "Knife" then hasKnife = true end
-				if t.Name == "Gun" or t.Name == "Pistol" then hasGun = true end
+				if t.Name == "Knife" then
+					hasKnife = true
+				end
+				if t.Name == "Gun" or t.Name == "Pistol" then
+					hasGun = true
+				end
 			end
 		end
 	end
@@ -64,7 +60,11 @@ local function isInnocent(player)
 	return not hasKnife and not hasGun
 end
 
+-- ======================
+-- CREAR ESP
+-- ======================
 local function applyESP(player)
+	if not _G.InnocentESP then return end
 	if not player.Character then return end
 	if player.Character:FindFirstChild("InnocentESP") then return end
 
@@ -79,24 +79,74 @@ local function applyESP(player)
 end
 
 -- ======================
--- LOOP ÚNICO Y CONTROLADO
+-- ACTUALIZAR ESTADO
 -- ======================
-_G.InnocentESPConnection = RunService.RenderStepped:Connect(function()
+local function updatePlayer(player)
 	if not _G.InnocentESP then return end
+	if player == LocalPlayer then return end
+	if not player.Character then return end
 
-	for _, plr in ipairs(Players:GetPlayers()) do
-		if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("Humanoid") then
-			if plr.Character.Humanoid.Health <= 0 then
-				local h = plr.Character:FindFirstChild("InnocentESP")
-				if h then h:Destroy() end
-			else
-				if isInnocent(plr) then
-					applyESP(plr)
-				else
-					local h = plr.Character:FindFirstChild("InnocentESP")
-					if h then h:Destroy() end
-				end
-			end
-		end
+	local humanoid = player.Character:FindFirstChild("Humanoid")
+	if not humanoid or humanoid.Health <= 0 then
+		clearESP(player)
+		return
 	end
-end)
+
+	if isInnocent(player) then
+		applyESP(player)
+	else
+		clearESP(player)
+	end
+end
+
+-- ======================
+-- MONITOREAR JUGADOR
+-- ======================
+local function monitorPlayer(player)
+	if player == LocalPlayer then return end
+
+	local function connectContainer(container)
+		if not container then return end
+
+		container.ChildAdded:Connect(function()
+			updatePlayer(player)
+		end)
+
+		container.ChildRemoved:Connect(function()
+			updatePlayer(player)
+		end)
+	end
+
+	-- Backpack
+	connectContainer(player:WaitForChild("Backpack"))
+
+	-- Character
+	if player.Character then
+		connectContainer(player.Character)
+		updatePlayer(player)
+	end
+
+	player.CharacterAdded:Connect(function(char)
+		connectContainer(char)
+
+		local humanoid = char:WaitForChild("Humanoid")
+		humanoid.Died:Connect(function()
+			clearESP(player)
+		end)
+
+		task.wait(0.2)
+		updatePlayer(player)
+	end)
+
+	-- Check inicial
+	updatePlayer(player)
+end
+
+-- ======================
+-- APLICAR A TODOS
+-- ======================
+for _, plr in ipairs(Players:GetPlayers()) do
+	monitorPlayer(plr)
+end
+
+Players.PlayerAdded:Connect(monitorPlayer)
