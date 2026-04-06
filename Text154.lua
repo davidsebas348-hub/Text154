@@ -8,6 +8,7 @@ if getgenv().HIGHLIGHT_ME == nil then
     getgenv().HIGHLIGHT_ME = true
 end
 
+getgenv().ROLE_ESP_CONNECTIONS = getgenv().ROLE_ESP_CONNECTIONS or {}
 
 getgenv().ROLE_ESP_ENABLED = not getgenv().ROLE_ESP_ENABLED
 
@@ -28,8 +29,18 @@ local function clearAllESP()
 	end
 end
 
+
 if not getgenv().ROLE_ESP_ENABLED then
 	clearAllESP()
+
+	for _, con in pairs(getgenv().ROLE_ESP_CONNECTIONS) do
+		if con then
+			con:Disconnect()
+		end
+	end
+
+	getgenv().ROLE_ESP_CONNECTIONS = {}
+
 	return
 end
 
@@ -87,98 +98,130 @@ local function getMapModel()
 end
 
 local function updateText(plr, role, color)
-	local name = TEXT_PREFIX .. plr.Name
-	local existing = CoreGui:FindFirstChild(name)
+    local name = TEXT_PREFIX .. plr.Name
+    local existing = CoreGui:FindFirstChild(name)
 
-	if role ~= "Murderer" then
-		if existing then
-			existing:Destroy()
-		end
-		return
-	end
+    if role ~= "Murderer" then
+        if existing then
+            existing:Destroy()
+        end
+        return
+    end
 
-	local char = plr.Character
-	if not char then return end
+    local char = plr.Character
+    if not char then return end
 
-	local head = char:FindFirstChild("Head")
-	if not head then return end
+    local head = char:FindFirstChild("Head")
+    if not head then return end
 
-	local bill = existing
+    local bill = existing
 
-	if not bill then
-		bill = Instance.new("BillboardGui")
-		bill.Name = name
-		bill.Size = UDim2.new(0, 100, 0, 35)
-		bill.StudsOffset = Vector3.new(0, 2.5, 0)
-		bill.AlwaysOnTop = true
-		bill.Parent = CoreGui
+    if not bill then
+        bill = Instance.new("BillboardGui")
+        bill.Name = name
+        bill.Size = UDim2.new(0, 100, 0, 35)
+        bill.StudsOffset = Vector3.new(0, 2.5, 0)
+        bill.AlwaysOnTop = true
+        bill.Parent = CoreGui
 
-		local txt = Instance.new("TextLabel")
-		txt.Name = "Label"
-		txt.Size = UDim2.new(1,0,1,0)
-		txt.BackgroundTransparency = 1
-		txt.TextScaled = true
-		txt.Font = Enum.Font.GothamBold
-		txt.TextStrokeTransparency = 0
-		txt.TextStrokeColor3 = Color3.new(0,0,0)
-		txt.Parent = bill
-	end
+        local txt = Instance.new("TextLabel")
+        txt.Name = "Label"
+        txt.Size = UDim2.new(1,0,1,0)
+        txt.BackgroundTransparency = 1
+        txt.TextScaled = true
+        txt.Font = Enum.Font.GothamBold
+        txt.TextStrokeTransparency = 0
+        txt.TextStrokeColor3 = Color3.new(0,0,0)
+        txt.Parent = bill
+    end
 
-	bill.Adornee = head
+    bill.Adornee = head
 
-	local txt = bill:FindFirstChild("Label")
-	if txt then
-		txt.Text = "Murderer"
-		txt.TextColor3 = color
-	end
+    local txt = bill:FindFirstChild("Label")
+    if txt then
+        txt.Text = "Murderer"
+        txt.TextColor3 = color
+    end
 end
 
 local function updateESP(plr)
-	if plr == LocalPlayer and not getgenv().HIGHLIGHT_ME then
-    local old = CoreGui:FindFirstChild(ESP_PREFIX .. plr.Name)
-    if old then
-        old:Destroy()
+    local name = ESP_PREFIX .. plr.Name
+    local textName = TEXT_PREFIX .. plr.Name
+
+    -- si está apagado, borrar cualquier resto
+    if not getgenv().ROLE_ESP_ENABLED then
+        local old = CoreGui:FindFirstChild(name)
+        if old then
+            old:Destroy()
+        end
+
+        local txt = CoreGui:FindFirstChild(textName)
+        if txt then
+            txt:Destroy()
+        end
+        return
     end
 
-    local txt = CoreGui:FindFirstChild(TEXT_PREFIX .. plr.Name)
-    if txt then
-        txt:Destroy()
+    -- si no quieres highlight en ti
+    if plr == LocalPlayer and not getgenv().HIGHLIGHT_ME then
+        local old = CoreGui:FindFirstChild(name)
+        if old then
+            old:Destroy()
+        end
+
+        local txt = CoreGui:FindFirstChild(textName)
+        if txt then
+            txt:Destroy()
+        end
+        return
     end
 
-    return
+    local char = plr.Character
+    if not char then
+        local old = CoreGui:FindFirstChild(name)
+        if old then
+            old:Destroy()
+        end
+        return
+    end
+
+    local role = getRole(plr)
+
+    local color = Color3.fromRGB(0,255,0)
+
+    if role == "Murderer" then
+        color = Color3.fromRGB(255,0,0)
+    elseif role == "Sheriff" then
+        color = Color3.fromRGB(0,170,255)
+    end
+
+    local hl = CoreGui:FindFirstChild(name)
+
+    local hl = CoreGui:FindFirstChild(name)
+
+if not hl then
+    hl = Instance.new("Highlight")
+    hl.Name = name
+    hl.Parent = CoreGui
+    hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    hl.FillTransparency = 0.5
+    hl.OutlineTransparency = 0
+end
+    if hl.Adornee ~= char then
+    hl.Adornee = char
 end
 
-	local char = plr.Character
-	if not char then return end
-
-	local role = getRole(plr)
-
-	local color = Color3.fromRGB(0,255,0)
-
-	if role == "Murderer" then
-		color = Color3.fromRGB(255,0,0)
-	elseif role == "Sheriff" then
-		color = Color3.fromRGB(0,170,255)
-	end
-
-	local name = ESP_PREFIX .. plr.Name
-	local hl = CoreGui:FindFirstChild(name)
-
-	if not hl then
-		hl = Instance.new("Highlight")
-		hl.Name = name
-		hl.Parent = CoreGui
-		hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-		hl.FillTransparency = 0.5
-		hl.OutlineTransparency = 0
-	end
-
-	hl.Adornee = char
-	hl.FillColor = color
-	hl.OutlineColor = color
-
-	updateText(plr, role, color)
+if hl.FillColor ~= color then
+    hl.FillColor = color
 end
+
+if hl.OutlineColor ~= color then
+    hl.OutlineColor = color
+end
+
+updateText(plr, role, color)
+end
+	
 
 local function reloadESP()
 	for _, plr in ipairs(Players:GetPlayers()) do
@@ -220,7 +263,8 @@ local function watchGunDropIfNoSheriff()
 	end)
 end
 
-RS:WaitForChild("Remotes")
+table.insert(getgenv().ROLE_ESP_CONNECTIONS,
+	RS:WaitForChild("Remotes")
 	:WaitForChild("Gameplay")
 	:WaitForChild("PlayerDataChanged", 5)
 	.OnClientEvent:Connect(function(data)
@@ -228,16 +272,21 @@ RS:WaitForChild("Remotes")
 		reloadESP()
 		watchGunDropIfNoSheriff()
 	end)
+)
 
-Players.PlayerAdded:Connect(function(plr)
+table.insert(getgenv().ROLE_ESP_CONNECTIONS,
+	Players.PlayerAdded:Connect(function(plr)
 	plr.CharacterAdded:Connect(function()
 		task.wait(0.5)
 		reloadESP()
 	end)
 end)
+)
+
+getgenv().ROLE_ESP_LOOP = true
 
 task.spawn(function()
-	while getgenv().ROLE_ESP_ENABLED do
+	while getgenv().ROLE_ESP_ENABLED and getgenv().ROLE_ESP_LOOP do
 		reloadESP()
 		watchGunDropIfNoSheriff()
 		task.wait(0.2)
