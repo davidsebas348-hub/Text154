@@ -1,100 +1,43 @@
+-- ======================
+-- ROLE ESP + TEXT READER
+-- ======================
+
 local Players = game:GetService("Players")
-local RS = game:GetService("ReplicatedStorage")
 local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
+local roleTable = getgenv().ROLE_TABLE or {}
+
+getgenv().ROLE_ESP_ENABLED = not getgenv().ROLE_ESP_ENABLED
 
 if getgenv().HIGHLIGHT_ME == nil then
     getgenv().HIGHLIGHT_ME = true
 end
 
-getgenv().ROLE_ESP_CONNECTIONS = getgenv().ROLE_ESP_CONNECTIONS or {}
+local ESP_PREFIX = "ROLE_ESP_"
+local TEXT_PREFIX = "ROLE_TEXT_"
 
-getgenv().ROLE_ESP_ENABLED = not getgenv().ROLE_ESP_ENABLED
-
-
-
-local ESP_PREFIX = "MM2_ROLE_ESP_"
-local TEXT_PREFIX = "MM2_ROLE_TEXT_"
-
-local playerData = {}
-local watchingGunDrop = false
-local gunWatcherConnection = nil
-
-local function clearAllESP()
-	for _, obj in ipairs(CoreGui:GetChildren()) do
-		if obj.Name:match("^" .. ESP_PREFIX) or obj.Name:match("^" .. TEXT_PREFIX) then
-			obj:Destroy()
-		end
-	end
+local function clearESP()
+    for _, v in ipairs(CoreGui:GetChildren()) do
+        if v.Name:match("^" .. ESP_PREFIX) or v.Name:match("^" .. TEXT_PREFIX) then
+            v:Destroy()
+        end
+    end
 end
-
 
 if not getgenv().ROLE_ESP_ENABLED then
-	clearAllESP()
-
-	for _, con in pairs(getgenv().ROLE_ESP_CONNECTIONS) do
-		if con then
-			con:Disconnect()
-		end
-	end
-
-	getgenv().ROLE_ESP_CONNECTIONS = {}
-
-	return
+    clearESP()
+    return
 end
 
-local function getRoleByTool(plr)
-	if plr.Backpack:FindFirstChild("Knife") then
-		return "Murderer"
-	end
-
-	if plr.Backpack:FindFirstChild("Gun") then
-		return "Sheriff"
-	end
-
-	if plr.Character then
-		if plr.Character:FindFirstChild("Knife") then
-			return "Murderer"
-		end
-
-		if plr.Character:FindFirstChild("Gun") then
-			return "Sheriff"
-		end
-	end
-
-	return nil
-end
-
-local function getRole(plr)
-	local toolRole = getRoleByTool(plr)
-	if toolRole then
-		return toolRole
-	end
-
-	if playerData[plr.Name] and playerData[plr.Name].Role then
-		return playerData[plr.Name].Role
-	end
-
-	return "Innocent"
-end
-
-local function hasSheriff()
-	for _, plr in ipairs(Players:GetPlayers()) do
-		if getRole(plr) == "Sheriff" then
-			return true
-		end
-	end
-	return false
-end
-
-local function getMapModel()
-	for _, obj in ipairs(workspace:GetChildren()) do
-		if obj:IsA("Model") and obj:FindFirstChild("Spawns") then
-			return obj
-		end
-	end
-	return nil
+local function getColor(role)
+    if role == "Murderer" then
+        return Color3.fromRGB(255,0,0)
+    elseif role == "Sheriff" then
+        return Color3.fromRGB(0,170,255)
+    else
+        return Color3.fromRGB(0,255,0)
+    end
 end
 
 local function updateText(plr, role, color)
@@ -145,153 +88,47 @@ local function updateText(plr, role, color)
 end
 
 local function updateESP(plr)
-    local name = ESP_PREFIX .. plr.Name
-    local textName = TEXT_PREFIX .. plr.Name
-
-    -- si está apagado, borrar cualquier resto
-    if not getgenv().ROLE_ESP_ENABLED then
-        local old = CoreGui:FindFirstChild(name)
-        if old then
-            old:Destroy()
-        end
-
-        local txt = CoreGui:FindFirstChild(textName)
-        if txt then
-            txt:Destroy()
-        end
-        return
-    end
-
-    -- si no quieres highlight en ti
-    if plr == LocalPlayer and not getgenv().HIGHLIGHT_ME then
-        local old = CoreGui:FindFirstChild(name)
-        if old then
-            old:Destroy()
-        end
-
-        local txt = CoreGui:FindFirstChild(textName)
-        if txt then
-            txt:Destroy()
-        end
-        return
-    end
-
     local char = plr.Character
-    if not char then
-        local old = CoreGui:FindFirstChild(name)
-        if old then
-            old:Destroy()
-        end
+    if not char then return end
+
+    if plr == LocalPlayer and not getgenv().HIGHLIGHT_ME then
+        local old = CoreGui:FindFirstChild(ESP_PREFIX .. plr.Name)
+        if old then old:Destroy() end
+
+        local txt = CoreGui:FindFirstChild(TEXT_PREFIX .. plr.Name)
+        if txt then txt:Destroy() end
         return
     end
 
-    local role = getRole(plr)
+    local role = roleTable[plr.Name] or "Innocent"
+    local color = getColor(role)
 
-    local color = Color3.fromRGB(0,255,0)
+    local name = ESP_PREFIX .. plr.Name
+    local hl = CoreGui:FindFirstChild(name)
 
-    if role == "Murderer" then
-        color = Color3.fromRGB(255,0,0)
-    elseif role == "Sheriff" then
-        color = Color3.fromRGB(0,170,255)
+    if not hl then
+        hl = Instance.new("Highlight")
+        hl.Name = name
+        hl.Parent = CoreGui
+        hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        hl.FillTransparency = 0.5
+        hl.OutlineTransparency = 0
     end
 
-    local hl = CoreGui:FindFirstChild(name)
-
-    local hl = CoreGui:FindFirstChild(name)
-
-if not hl then
-    hl = Instance.new("Highlight")
-    hl.Name = name
-    hl.Parent = CoreGui
-    hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    hl.FillTransparency = 0.5
-    hl.OutlineTransparency = 0
-end
-    if hl.Adornee ~= char then
     hl.Adornee = char
-end
-
-if hl.FillColor ~= color then
     hl.FillColor = color
-end
-
-if hl.OutlineColor ~= color then
     hl.OutlineColor = color
+
+    updateText(plr, role, color)
 end
-
-updateText(plr, role, color)
-end
-	
-
-local function reloadESP()
-	for _, plr in ipairs(Players:GetPlayers()) do
-		updateESP(plr)
-	end
-end
-
-local function watchGunDropIfNoSheriff()
-	if hasSheriff() then
-		return
-	end
-
-	if watchingGunDrop then
-		return
-	end
-
-	local map = getMapModel()
-	if not map then
-		return
-	end
-
-	local gunDrop = map:FindFirstChild("GunDrop")
-	if not gunDrop then
-		return
-	end
-
-	watchingGunDrop = true
-
-	if gunWatcherConnection then
-		gunWatcherConnection:Disconnect()
-	end
-
-	gunWatcherConnection = gunDrop.AncestryChanged:Connect(function(_, parent)
-		if not parent then
-			watchingGunDrop = false
-			task.wait(0.2)
-			reloadESP()
-		end
-	end)
-end
-
-table.insert(getgenv().ROLE_ESP_CONNECTIONS,
-	RS:WaitForChild("Remotes")
-	:WaitForChild("Gameplay")
-	:WaitForChild("PlayerDataChanged", 5)
-	.OnClientEvent:Connect(function(data)
-		playerData = data
-		reloadESP()
-		watchGunDropIfNoSheriff()
-	end)
-)
-
-table.insert(getgenv().ROLE_ESP_CONNECTIONS,
-	Players.PlayerAdded:Connect(function(plr)
-	plr.CharacterAdded:Connect(function()
-		task.wait(0.5)
-		reloadESP()
-	end)
-end)
-)
-
-getgenv().ROLE_ESP_LOOP = true
 
 task.spawn(function()
-	while getgenv().ROLE_ESP_ENABLED and getgenv().ROLE_ESP_LOOP do
-		reloadESP()
-		watchGunDropIfNoSheriff()
-		task.wait(0.2)
-	end
-end)
+    while getgenv().ROLE_ESP_ENABLED do
+        for _, plr in ipairs(Players:GetPlayers()) do
+            updateESP(plr)
+        end
+        task.wait(0.2)
+    end
 
-reloadESP()
-watchGunDropIfNoSheriff()
+    clearESP()
+end)
