@@ -1,11 +1,10 @@
 -- ======================
--- ROLE ESP + TEXT READER
+-- ROLE ESP + TEXT READER (FIXED)
 -- ======================
 
 local Players = game:GetService("Players")
-local CoreGui = game:GetService("CoreGui")
-
 local LocalPlayer = Players.LocalPlayer
+
 local roleTable = getgenv().ROLE_TABLE or {}
 
 getgenv().ROLE_ESP_ENABLED = not getgenv().ROLE_ESP_ENABLED
@@ -18,9 +17,21 @@ local ESP_PREFIX = "ROLE_ESP_"
 local TEXT_PREFIX = "ROLE_TEXT_"
 
 local function clearESP()
-    for _, v in ipairs(CoreGui:GetChildren()) do
-        if v.Name:match("^" .. ESP_PREFIX) or v.Name:match("^" .. TEXT_PREFIX) then
-            v:Destroy()
+    for _, plr in ipairs(Players:GetPlayers()) do
+        local char = plr.Character
+        if char then
+            local esp = char:FindFirstChild(ESP_PREFIX .. plr.Name)
+            if esp then
+                esp:Destroy()
+            end
+
+            local head = char:FindFirstChild("Head")
+            if head then
+                local txt = head:FindFirstChild(TEXT_PREFIX .. plr.Name)
+                if txt then
+                    txt:Destroy()
+                end
+            end
         end
     end
 end
@@ -32,17 +43,23 @@ end
 
 local function getColor(role)
     if role == "Murderer" then
-        return Color3.fromRGB(255,0,0)
+        return Color3.fromRGB(255, 0, 0)
     elseif role == "Sheriff" then
-        return Color3.fromRGB(0,170,255)
+        return Color3.fromRGB(0, 170, 255)
     else
-        return Color3.fromRGB(0,255,0)
+        return Color3.fromRGB(0, 255, 0)
     end
 end
 
 local function updateText(plr, role, color)
+    local char = plr.Character
+    if not char then return end
+
+    local head = char:FindFirstChild("Head")
+    if not head then return end
+
     local name = TEXT_PREFIX .. plr.Name
-    local existing = CoreGui:FindFirstChild(name)
+    local existing = head:FindFirstChild(name)
 
     if role ~= "Murderer" then
         if existing then
@@ -50,12 +67,6 @@ local function updateText(plr, role, color)
         end
         return
     end
-
-    local char = plr.Character
-    if not char then return end
-
-    local head = char:FindFirstChild("Head")
-    if not head then return end
 
     local bill = existing
 
@@ -69,12 +80,12 @@ local function updateText(plr, role, color)
 
         local txt = Instance.new("TextLabel")
         txt.Name = "Label"
-        txt.Size = UDim2.new(1,0,1,0)
+        txt.Size = UDim2.new(1, 0, 1, 0)
         txt.BackgroundTransparency = 1
         txt.TextScaled = true
         txt.Font = Enum.Font.GothamBold
         txt.TextStrokeTransparency = 0
-        txt.TextStrokeColor3 = Color3.new(0,0,0)
+        txt.TextStrokeColor3 = Color3.new(0, 0, 0)
         txt.Parent = bill
     end
 
@@ -92,11 +103,14 @@ local function updateESP(plr)
     if not char then return end
 
     if plr == LocalPlayer and not getgenv().HIGHLIGHT_ME then
-        local old = CoreGui:FindFirstChild(ESP_PREFIX .. plr.Name)
+        local old = char:FindFirstChild(ESP_PREFIX .. plr.Name)
         if old then old:Destroy() end
 
-        local txt = CoreGui:FindFirstChild(TEXT_PREFIX .. plr.Name)
-        if txt then txt:Destroy() end
+        local head = char:FindFirstChild("Head")
+        if head then
+            local txt = head:FindFirstChild(TEXT_PREFIX .. plr.Name)
+            if txt then txt:Destroy() end
+        end
         return
     end
 
@@ -104,7 +118,7 @@ local function updateESP(plr)
     local color = getColor(role)
 
     local name = ESP_PREFIX .. plr.Name
-    local hl = CoreGui:FindFirstChild(name)
+    local hl = char:FindFirstChild(name)
 
     if not hl then
         hl = Instance.new("Highlight")
