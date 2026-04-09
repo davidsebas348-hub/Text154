@@ -65,7 +65,7 @@ local function updateText(plr, role, color)
         bill.Size = UDim2.new(0, 100, 0, 35)
         bill.StudsOffset = Vector3.new(0, 2.5, 0)
         bill.AlwaysOnTop = true
-        bill.Parent = CoreGui
+        bill.Parent = head
 
         local txt = Instance.new("TextLabel")
         txt.Name = "Label"
@@ -109,7 +109,7 @@ local function updateESP(plr)
     if not hl then
         hl = Instance.new("Highlight")
         hl.Name = name
-        hl.Parent = CoreGui
+        hl.Parent = char
         hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
         hl.FillTransparency = 0.5
         hl.OutlineTransparency = 0
