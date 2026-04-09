@@ -1,8 +1,11 @@
 -- ======================
--- ROLE ESP + TEXT READER (FIXED)
+-- ROLE ESP + TEXT READER
+-- Highlight = Character
+-- Text = CoreGui
 -- ======================
 
 local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
 
 local roleTable = getgenv().ROLE_TABLE or {}
@@ -24,14 +27,11 @@ local function clearESP()
             if esp then
                 esp:Destroy()
             end
+        end
 
-            local head = char:FindFirstChild("Head")
-            if head then
-                local txt = head:FindFirstChild(TEXT_PREFIX .. plr.Name)
-                if txt then
-                    txt:Destroy()
-                end
-            end
+        local txt = CoreGui:FindFirstChild(TEXT_PREFIX .. plr.Name)
+        if txt then
+            txt:Destroy()
         end
     end
 end
@@ -52,14 +52,8 @@ local function getColor(role)
 end
 
 local function updateText(plr, role, color)
-    local char = plr.Character
-    if not char then return end
-
-    local head = char:FindFirstChild("Head")
-    if not head then return end
-
     local name = TEXT_PREFIX .. plr.Name
-    local existing = head:FindFirstChild(name)
+    local existing = CoreGui:FindFirstChild(name)
 
     if role ~= "Murderer" then
         if existing then
@@ -67,6 +61,12 @@ local function updateText(plr, role, color)
         end
         return
     end
+
+    local char = plr.Character
+    if not char then return end
+
+    local head = char:FindFirstChild("Head")
+    if not head then return end
 
     local bill = existing
 
@@ -76,16 +76,16 @@ local function updateText(plr, role, color)
         bill.Size = UDim2.new(0, 100, 0, 35)
         bill.StudsOffset = Vector3.new(0, 2.5, 0)
         bill.AlwaysOnTop = true
-        bill.Parent = head
+        bill.Parent = CoreGui
 
         local txt = Instance.new("TextLabel")
         txt.Name = "Label"
-        txt.Size = UDim2.new(1, 0, 1, 0)
+        txt.Size = UDim2.new(1,0,1,0)
         txt.BackgroundTransparency = 1
         txt.TextScaled = true
         txt.Font = Enum.Font.GothamBold
         txt.TextStrokeTransparency = 0
-        txt.TextStrokeColor3 = Color3.new(0, 0, 0)
+        txt.TextStrokeColor3 = Color3.new(0,0,0)
         txt.Parent = bill
     end
 
@@ -106,11 +106,8 @@ local function updateESP(plr)
         local old = char:FindFirstChild(ESP_PREFIX .. plr.Name)
         if old then old:Destroy() end
 
-        local head = char:FindFirstChild("Head")
-        if head then
-            local txt = head:FindFirstChild(TEXT_PREFIX .. plr.Name)
-            if txt then txt:Destroy() end
-        end
+        local txt = CoreGui:FindFirstChild(TEXT_PREFIX .. plr.Name)
+        if txt then txt:Destroy() end
         return
     end
 
