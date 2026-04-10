@@ -1,13 +1,11 @@
 -- ======================
 -- ROLE ESP + TEXT READER
--- Highlight = Character
--- Text = CoreGui
 -- ======================
 
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
-local LocalPlayer = Players.LocalPlayer
 
+local LocalPlayer = Players.LocalPlayer
 local roleTable = getgenv().ROLE_TABLE or {}
 
 getgenv().ROLE_ESP_ENABLED = not getgenv().ROLE_ESP_ENABLED
@@ -20,18 +18,9 @@ local ESP_PREFIX = "ROLE_ESP_"
 local TEXT_PREFIX = "ROLE_TEXT_"
 
 local function clearESP()
-    for _, plr in ipairs(Players:GetPlayers()) do
-        local char = plr.Character
-        if char then
-            local esp = char:FindFirstChild(ESP_PREFIX .. plr.Name)
-            if esp then
-                esp:Destroy()
-            end
-        end
-
-        local txt = CoreGui:FindFirstChild(TEXT_PREFIX .. plr.Name)
-        if txt then
-            txt:Destroy()
+    for _, v in ipairs(CoreGui:GetChildren()) do
+        if v.Name:match("^" .. ESP_PREFIX) or v.Name:match("^" .. TEXT_PREFIX) then
+            v:Destroy()
         end
     end
 end
@@ -80,12 +69,12 @@ local function updateText(plr, role, color)
 
         local txt = Instance.new("TextLabel")
         txt.Name = "Label"
-        txt.Size = UDim2.new(1,0,1,0)
+        txt.Size = UDim2.new(1, 0, 1, 0)
         txt.BackgroundTransparency = 1
         txt.TextScaled = true
         txt.Font = Enum.Font.GothamBold
         txt.TextStrokeTransparency = 0
-        txt.TextStrokeColor3 = Color3.new(0,0,0)
+        txt.TextStrokeColor3 = Color3.new(0, 0, 0)
         txt.Parent = bill
     end
 
@@ -103,7 +92,7 @@ local function updateESP(plr)
     if not char then return end
 
     if plr == LocalPlayer and not getgenv().HIGHLIGHT_ME then
-        local old = char:FindFirstChild(ESP_PREFIX .. plr.Name)
+        local old = CoreGui:FindFirstChild(ESP_PREFIX .. plr.Name)
         if old then old:Destroy() end
 
         local txt = CoreGui:FindFirstChild(TEXT_PREFIX .. plr.Name)
@@ -115,12 +104,12 @@ local function updateESP(plr)
     local color = getColor(role)
 
     local name = ESP_PREFIX .. plr.Name
-    local hl = char:FindFirstChild(name)
+    local hl = CoreGui:FindFirstChild(name)
 
     if not hl then
         hl = Instance.new("Highlight")
         hl.Name = name
-        hl.Parent = char
+        hl.Parent = CoreGui
         hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
         hl.FillTransparency = 0.5
         hl.OutlineTransparency = 0
