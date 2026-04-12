@@ -1,5 +1,5 @@
 -- ======================
--- ROLE ESP + TEXT READER FIXED
+-- ROLE ESP + TEXT READER FIXED PRO
 -- ======================
 
 local Players = game:GetService("Players")
@@ -9,6 +9,7 @@ local LocalPlayer = Players.LocalPlayer
 local roleTable = getgenv().ROLE_TABLE or {}
 
 getgenv().ROLE_ESP_ENABLED = not getgenv().ROLE_ESP_ENABLED
+getgenv().LAST_ROLES = getgenv().LAST_ROLES or {}
 
 if getgenv().HIGHLIGHT_ME == nil then
 	getgenv().HIGHLIGHT_ME = true
@@ -18,7 +19,7 @@ local ESP_PREFIX = "ROLE_ESP_"
 local TEXT_PREFIX = "ROLE_TEXT_"
 
 -- ======================
--- LIMPIAR TODO
+-- LIMPIAR
 -- ======================
 local function clearESP()
 	for _, v in ipairs(CoreGui:GetChildren()) do
@@ -34,7 +35,7 @@ if not getgenv().ROLE_ESP_ENABLED then
 end
 
 -- ======================
--- COLOR POR ROL
+-- COLORES
 -- ======================
 local function getColor(role)
 	if role == "Murderer" then
@@ -97,14 +98,25 @@ local function updateText(plr, role, color)
 end
 
 -- ======================
--- ESP FIXED
+-- ESP
 -- ======================
 local function updateESP(plr)
+	-- validar jugador real
+	if not Players:FindFirstChild(plr.Name) then
+		return
+	end
+
 	local char = plr.Character
 	if not char then return end
 
 	local humanoid = char:FindFirstChildOfClass("Humanoid")
-	if not humanoid then return end
+	local head = char:FindFirstChild("Head")
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+
+	-- ignorar modelos falsos / npc
+	if not humanoid or not head or not hrp then
+		return
+	end
 
 	if plr == LocalPlayer and not getgenv().HIGHLIGHT_ME then
 		local old = CoreGui:FindFirstChild(ESP_PREFIX .. plr.Name)
@@ -115,24 +127,36 @@ local function updateESP(plr)
 		return
 	end
 
-	local role = roleTable[plr.Name] or "Innocent"
+	-- mantener último rol
+	local role = roleTable[plr.Name]
+
+	if role then
+		getgenv().LAST_ROLES[plr.Name] = role
+	else
+		role = getgenv().LAST_ROLES[plr.Name] or "Innocent"
+	end
+
 	local color = getColor(role)
 
 	local name = ESP_PREFIX .. plr.Name
+	local hl = CoreGui:FindFirstChild(name)
 
-	-- destruir highlight viejo para evitar partes bug
-	local old = CoreGui:FindFirstChild(name)
-	if old then
-		old:Destroy()
+	-- recrear solo si está mal pegado
+	if not hl or hl.Adornee ~= char then
+		if hl then
+			hl:Destroy()
+		end
+
+		hl = Instance.new("Highlight")
+		hl.Name = name
+		hl.Parent = CoreGui
+		hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+		hl.FillTransparency = 0.5
+		hl.OutlineTransparency = 0
+		hl.Adornee = char
 	end
 
-	local hl = Instance.new("Highlight")
-	hl.Name = name
-	hl.Parent = CoreGui
-	hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-	hl.FillTransparency = 0.5
-	hl.OutlineTransparency = 0
-	hl.Adornee = char
+	-- actualizar TODO el cuerpo
 	hl.FillColor = color
 	hl.OutlineColor = color
 
