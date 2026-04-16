@@ -1,5 +1,5 @@
 -- ======================
--- ROLE ESP + TEXT READER PRO
+-- ROLE ESP + TEXT READER PRO (FIXED NO DUPLICATES)
 -- ======================
 
 local Players = game:GetService("Players")
@@ -8,109 +8,116 @@ local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
 local roleTable = getgenv().ROLE_TABLE or {}
 
-getgenv().ROLE_ESP_ENABLED = not getgenv().ROLE_ESP_ENABLED
-getgenv().LAST_ROLES = getgenv().LAST_ROLES or {}
-
-if getgenv().HIGHLIGHT_ME == nil then
-	getgenv().HIGHLIGHT_ME = true
-end
+getgenv().ROLE_ESP_ENABLED = (getgenv().ROLE_ESP_ENABLED == nil) and true or getgenv().ROLE_ESP_ENABLED
+getgenv().HIGHLIGHT_ME = (getgenv().HIGHLIGHT_ME == nil) and true or getgenv().HIGHLIGHT_ME
 
 local ESP_PREFIX = "ROLE_ESP_"
 local TEXT_PREFIX = "ROLE_TEXT_"
 
 -- ======================
--- LIMPIAR
+-- VALIDACIONES
 -- ======================
-local function clearESP()
+local function isValidPlayer(plr)
+	return plr and Players:FindFirstChild(plr.Name)
+end
+
+local function isValidCharacter(plr)
+	local char = plr.Character
+	if not char then return false end
+	if not char:FindFirstChildOfClass("Humanoid") then return false end
+	if not char:FindFirstChild("Head") then return false end
+	return true
+end
+
+-- ======================
+-- CLEANUP
+-- ======================
+local function cleanupESP()
 	for _, v in ipairs(CoreGui:GetChildren()) do
-		if v.Name:match("^" .. ESP_PREFIX) or v.Name:match("^" .. TEXT_PREFIX) then
-			v:Destroy()
+		if v:IsA("Highlight") then
+			if not Players:FindFirstChild(v.Name:gsub(ESP_PREFIX, "")) then
+				v:Destroy()
+			end
+		end
+
+		if v:IsA("BillboardGui") then
+			if not Players:FindFirstChild(v.Name:gsub(TEXT_PREFIX, "")) then
+				v:Destroy()
+			end
 		end
 	end
 end
 
-if not getgenv().ROLE_ESP_ENABLED then
-	clearESP()
-	return
-end
-
 -- ======================
--- TEXTO SOLO MURDER
+-- TEXTO (SIN DUPLICADOS)
 -- ======================
 local function updateText(plr, role, color, alive)
-	local name = TEXT_PREFIX .. plr.Name
-	local existing = CoreGui:FindFirstChild(name)
-
-	if role ~= "Murderer" or alive ~= true then
-		if existing then
-			existing:Destroy()
-		end
-		return
-	end
+	if not isValidPlayer(plr) then return end
+	if not isValidCharacter(plr) then return end
 
 	local char = plr.Character
-	if not char then return end
-
 	local head = char:FindFirstChild("Head")
 	if not head then return end
 
-	local bill = existing
+	local name = TEXT_PREFIX .. plr.Name
+	local gui = CoreGui:FindFirstChild(name)
 
-	if not bill then
-		bill = Instance.new("BillboardGui")
-		bill.Name = name
-		bill.Size = UDim2.new(0, 100, 0, 35)
-		bill.StudsOffset = Vector3.new(0, 2.5, 0)
-		bill.AlwaysOnTop = true
-		bill.Parent = CoreGui
-
-		local txt = Instance.new("TextLabel")
-		txt.Name = "Label"
-		txt.Size = UDim2.new(1, 0, 1, 0)
-		txt.BackgroundTransparency = 1
-		txt.TextScaled = true
-		txt.Font = Enum.Font.GothamBold
-		txt.TextStrokeTransparency = 0
-		txt.TextStrokeColor3 = Color3.new(0,0,0)
-		txt.Parent = bill
+	-- ❌ SI NO ES MURDERER → BORRAR
+	if role ~= "Murderer" or alive ~= true then
+		if gui then gui:Destroy() end
+		return
 	end
 
-	bill.Adornee = head
+	-- ✅ SI YA EXISTE → SOLO ACTUALIZAR
+	if gui then
+		gui.Adornee = head
 
-	local txt = bill:FindFirstChild("Label")
-	if txt then
-		txt.Text = "Murderer"
-		txt.TextColor3 = color
+		local label = gui:FindFirstChild("Label")
+		if label then
+			label.Text = "Murderer"
+			label.TextColor3 = color
+		end
+		return
 	end
+
+	-- ✅ CREAR SOLO 1 VEZ
+	gui = Instance.new("BillboardGui")
+	gui.Name = name
+	gui.Size = UDim2.new(0, 100, 0, 35)
+	gui.StudsOffset = Vector3.new(0, 2.5, 0)
+	gui.AlwaysOnTop = true
+	gui.Adornee = head
+	gui.Parent = CoreGui
+
+	local label = Instance.new("TextLabel")
+	label.Name = "Label"
+	label.Size = UDim2.new(1, 0, 1, 0)
+	label.BackgroundTransparency = 1
+	label.TextScaled = true
+	label.Font = Enum.Font.GothamBold
+	label.TextStrokeTransparency = 0
+	label.TextStrokeColor3 = Color3.new(0,0,0)
+	label.Text = "Murderer"
+	label.TextColor3 = color
+	label.Parent = gui
 end
 
 -- ======================
--- ESP
+-- ESP PRINCIPAL
 -- ======================
 local function updateESP(plr)
-	if not Players:FindFirstChild(plr.Name) then
-		return
-	end
-
-	local char = plr.Character
-	if not char then return end
-
-	local humanoid = char:FindFirstChildOfClass("Humanoid")
-	local head = char:FindFirstChild("Head")
-	local hrp = char:FindFirstChild("HumanoidRootPart")
-
-	if not humanoid or not head or not hrp then
-		return
-	end
-
-	if plr == LocalPlayer and not getgenv().HIGHLIGHT_ME then
+	if not isValidPlayer(plr) then return end
+	if plr == LocalPlayer then
+	if not getgenv().HIGHLIGHT_ME then
 		local old = CoreGui:FindFirstChild(ESP_PREFIX .. plr.Name)
 		if old then old:Destroy() end
 
 		local txt = CoreGui:FindFirstChild(TEXT_PREFIX .. plr.Name)
 		if txt then txt:Destroy() end
-		return
 	end
+	return
+	end
+	if not isValidCharacter(plr) then return end
 
 	local data = roleTable[plr.Name]
 
@@ -125,22 +132,20 @@ local function updateESP(plr)
 	end
 
 	local name = ESP_PREFIX .. plr.Name
+	local char = plr.Character
+
 	local hl = CoreGui:FindFirstChild(name)
 
-	if not hl or hl.Adornee ~= char then
-		if hl then
-			hl:Destroy()
-		end
-
+	if not hl then
 		hl = Instance.new("Highlight")
 		hl.Name = name
 		hl.Parent = CoreGui
 		hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
 		hl.FillTransparency = 0.5
 		hl.OutlineTransparency = 0
-		hl.Adornee = char
 	end
 
+	hl.Adornee = char
 	hl.FillColor = color
 	hl.OutlineColor = color
 
@@ -148,15 +153,17 @@ local function updateESP(plr)
 end
 
 -- ======================
--- LOOP
+-- LOOP PRINCIPAL
 -- ======================
 task.spawn(function()
 	while getgenv().ROLE_ESP_ENABLED do
 		for _, plr in ipairs(Players:GetPlayers()) do
 			updateESP(plr)
 		end
+
+		cleanupESP()
 		task.wait(0.15)
 	end
 
-	clearESP()
+	cleanupESP()
 end)
