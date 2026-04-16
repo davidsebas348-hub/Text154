@@ -107,16 +107,7 @@ end
 -- ======================
 local function updateESP(plr)
 	if not isValidPlayer(plr) then return end
-	if plr == LocalPlayer then
-	if not getgenv().HIGHLIGHT_ME then
-		local old = CoreGui:FindFirstChild(ESP_PREFIX .. plr.Name)
-		if old then old:Destroy() end
-
-		local txt = CoreGui:FindFirstChild(TEXT_PREFIX .. plr.Name)
-		if txt then txt:Destroy() end
-	end
-	return
-	end
+	if plr == LocalPlayer and not getgenv().HIGHLIGHT_ME then return end
 	if not isValidCharacter(plr) then return end
 
 	local data = roleTable[plr.Name]
