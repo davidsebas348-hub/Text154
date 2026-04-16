@@ -8,7 +8,10 @@ local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
 local roleTable = getgenv().ROLE_TABLE or {}
 
-getgenv().ROLE_ESP_ENABLED = (getgenv().ROLE_ESP_ENABLED == nil) and true or getgenv().ROLE_ESP_ENABLED
+getgenv().ROLE_ESP_ENABLED = getgenv().ROLE_ESP_ENABLED or false
+
+-- 🔥 TOGGLE AUTOMÁTICO AL EJECUTAR SCRIPT
+getgenv().ROLE_ESP_ENABLED = not getgenv().ROLE_ESP_ENABLED
 getgenv().HIGHLIGHT_ME = (getgenv().HIGHLIGHT_ME == nil) and true or getgenv().HIGHLIGHT_ME
 
 local ESP_PREFIX = "ROLE_ESP_"
@@ -100,13 +103,13 @@ local function updateESP(plr)
 	if not isValidPlayer(plr) then return end
 	if not isValidCharacter(plr) then return end
 
-	-- 🔥 SELF FIX ESTABLE
+	-- 🔥 SELF FIX
 	if plr == LocalPlayer then
 		local esp = CoreGui:FindFirstChild(ESP_PREFIX .. plr.Name)
 		local txt = CoreGui:FindFirstChild(TEXT_PREFIX .. plr.Name)
 
 		if getgenv().HIGHLIGHT_ME then
-			-- normal update (no special handling)
+			-- normal
 		else
 			if esp then esp:Destroy() end
 			if txt then txt:Destroy() end
@@ -148,15 +151,24 @@ local function updateESP(plr)
 end
 
 -- ======================
--- LOOP ESTABLE
+-- 🔥 FIX TOGGLE REAL (ESTO ES LO IMPORTANTE)
 -- ======================
 task.spawn(function()
-	while getgenv().ROLE_ESP_ENABLED do
-		for _, plr in ipairs(Players:GetPlayers()) do
-			updateESP(plr)
+	while true do
+
+		if getgenv().ROLE_ESP_ENABLED then
+			for _, plr in ipairs(Players:GetPlayers()) do
+				updateESP(plr)
+			end
+		else
+			-- 🔥 BORRAR TODO INSTANTE CUANDO ESTÁ OFF
+			for _, v in ipairs(CoreGui:GetChildren()) do
+				if v.Name:match("^ROLE_ESP_") or v.Name:match("^ROLE_TEXT_") then
+					v:Destroy()
+				end
+			end
 		end
 
-		cleanupESP()
 		task.wait(0.25)
 	end
 end)
