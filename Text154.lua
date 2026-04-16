@@ -1,5 +1,5 @@
 -- ======================
--- ROLE ESP + TEXT READER PRO (FIXED NO DUPLICATES)
+-- ROLE ESP + TEXT READER PRO (STABLE FIX)
 -- ======================
 
 local Players = game:GetService("Players")
@@ -30,30 +30,25 @@ local function isValidCharacter(plr)
 end
 
 -- ======================
--- CLEANUP
+-- CLEAN SOLO SEGURO
 -- ======================
 local function cleanupESP()
-	for _, v in ipairs(CoreGui:GetChildren()) do
-		if v:IsA("Highlight") then
-			if not Players:FindFirstChild(v.Name:gsub(ESP_PREFIX, "")) then
-				v:Destroy()
-			end
-		end
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if not isValidPlayer(plr) then
+			local esp = CoreGui:FindFirstChild(ESP_PREFIX .. plr.Name)
+			local txt = CoreGui:FindFirstChild(TEXT_PREFIX .. plr.Name)
 
-		if v:IsA("BillboardGui") then
-			if not Players:FindFirstChild(v.Name:gsub(TEXT_PREFIX, "")) then
-				v:Destroy()
-			end
+			if esp then esp:Destroy() end
+			if txt then txt:Destroy() end
 		end
 	end
 end
 
 -- ======================
--- TEXTO (SIN DUPLICADOS)
+-- TEXTO MURDER SIN DUPES
 -- ======================
 local function updateText(plr, role, color, alive)
-	if not isValidPlayer(plr) then return end
-	if not isValidCharacter(plr) then return end
+	if not isValidPlayer(plr) or not isValidCharacter(plr) then return end
 
 	local char = plr.Character
 	local head = char:FindFirstChild("Head")
@@ -62,16 +57,13 @@ local function updateText(plr, role, color, alive)
 	local name = TEXT_PREFIX .. plr.Name
 	local gui = CoreGui:FindFirstChild(name)
 
-	-- ❌ SI NO ES MURDERER → BORRAR
 	if role ~= "Murderer" or alive ~= true then
 		if gui then gui:Destroy() end
 		return
 	end
 
-	-- ✅ SI YA EXISTE → SOLO ACTUALIZAR
 	if gui then
 		gui.Adornee = head
-
 		local label = gui:FindFirstChild("Label")
 		if label then
 			label.Text = "Murderer"
@@ -80,7 +72,6 @@ local function updateText(plr, role, color, alive)
 		return
 	end
 
-	-- ✅ CREAR SOLO 1 VEZ
 	gui = Instance.new("BillboardGui")
 	gui.Name = name
 	gui.Size = UDim2.new(0, 100, 0, 35)
@@ -107,8 +98,21 @@ end
 -- ======================
 local function updateESP(plr)
 	if not isValidPlayer(plr) then return end
-	if plr == LocalPlayer and not getgenv().HIGHLIGHT_ME then return end
 	if not isValidCharacter(plr) then return end
+
+	-- 🔥 SELF FIX ESTABLE
+	if plr == LocalPlayer then
+		local esp = CoreGui:FindFirstChild(ESP_PREFIX .. plr.Name)
+		local txt = CoreGui:FindFirstChild(TEXT_PREFIX .. plr.Name)
+
+		if getgenv().HIGHLIGHT_ME then
+			-- normal update (no special handling)
+		else
+			if esp then esp:Destroy() end
+			if txt then txt:Destroy() end
+			return
+		end
+	end
 
 	local data = roleTable[plr.Name]
 
@@ -144,7 +148,7 @@ local function updateESP(plr)
 end
 
 -- ======================
--- LOOP PRINCIPAL
+-- LOOP ESTABLE
 -- ======================
 task.spawn(function()
 	while getgenv().ROLE_ESP_ENABLED do
@@ -153,8 +157,6 @@ task.spawn(function()
 		end
 
 		cleanupESP()
-		task.wait(0.15)
+		task.wait(0.25)
 	end
-
-	cleanupESP()
 end)
