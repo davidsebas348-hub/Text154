@@ -1,5 +1,5 @@
 -- ======================
--- ROLE ESP + TEXT READER FIXED PRO
+-- ROLE ESP + TEXT READER PRO
 -- ======================
 
 local Players = game:GetService("Players")
@@ -35,26 +35,13 @@ if not getgenv().ROLE_ESP_ENABLED then
 end
 
 -- ======================
--- COLORES
+-- TEXTO SOLO MURDER
 -- ======================
-local function getColor(role)
-	if role == "Murderer" then
-		return Color3.fromRGB(255, 0, 0)
-	elseif role == "Sheriff" then
-		return Color3.fromRGB(0, 170, 255)
-	else
-		return Color3.fromRGB(0, 255, 0)
-	end
-end
-
--- ======================
--- TEXTO SOLO MURDERER
--- ======================
-local function updateText(plr, role, color)
+local function updateText(plr, role, color, alive)
 	local name = TEXT_PREFIX .. plr.Name
 	local existing = CoreGui:FindFirstChild(name)
 
-	if role ~= "Murderer" then
+	if role ~= "Murderer" or alive ~= true then
 		if existing then
 			existing:Destroy()
 		end
@@ -84,7 +71,7 @@ local function updateText(plr, role, color)
 		txt.TextScaled = true
 		txt.Font = Enum.Font.GothamBold
 		txt.TextStrokeTransparency = 0
-		txt.TextStrokeColor3 = Color3.new(0, 0, 0)
+		txt.TextStrokeColor3 = Color3.new(0,0,0)
 		txt.Parent = bill
 	end
 
@@ -101,7 +88,6 @@ end
 -- ESP
 -- ======================
 local function updateESP(plr)
-	-- validar jugador real
 	if not Players:FindFirstChild(plr.Name) then
 		return
 	end
@@ -113,7 +99,6 @@ local function updateESP(plr)
 	local head = char:FindFirstChild("Head")
 	local hrp = char:FindFirstChild("HumanoidRootPart")
 
-	-- ignorar modelos falsos / npc
 	if not humanoid or not head or not hrp then
 		return
 	end
@@ -127,21 +112,21 @@ local function updateESP(plr)
 		return
 	end
 
-	-- mantener último rol
-	local role = roleTable[plr.Name]
+	local data = roleTable[plr.Name]
 
-	if role then
-		getgenv().LAST_ROLES[plr.Name] = role
-	else
-		role = getgenv().LAST_ROLES[plr.Name] or "Innocent"
+	local role = "Waiting"
+	local color = Color3.fromRGB(120,120,120)
+	local alive = false
+
+	if data then
+		role = data.Role or role
+		color = data.Color or color
+		alive = data.Alive
 	end
-
-	local color = getColor(role)
 
 	local name = ESP_PREFIX .. plr.Name
 	local hl = CoreGui:FindFirstChild(name)
 
-	-- recrear solo si está mal pegado
 	if not hl or hl.Adornee ~= char then
 		if hl then
 			hl:Destroy()
@@ -156,11 +141,10 @@ local function updateESP(plr)
 		hl.Adornee = char
 	end
 
-	-- actualizar TODO el cuerpo
 	hl.FillColor = color
 	hl.OutlineColor = color
 
-	updateText(plr, role, color)
+	updateText(plr, role, color, alive)
 end
 
 -- ======================
