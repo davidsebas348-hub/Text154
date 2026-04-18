@@ -1,5 +1,5 @@
 -- ======================
--- ROLE ESP + TEXT READER PRO (STABLE FIX)
+-- ROLE ESP + TEXT READER PRO (CHAR MODEL VERSION)
 -- ======================
 
 local Players = game:GetService("Players")
@@ -10,7 +10,7 @@ local roleTable = getgenv().ROLE_TABLE or {}
 
 getgenv().ROLE_ESP_ENABLED = getgenv().ROLE_ESP_ENABLED or false
 
--- 🔥 TOGGLE AUTOMÁTICO AL EJECUTAR SCRIPT
+-- 🔥 TOGGLE AUTOMÁTICO
 getgenv().ROLE_ESP_ENABLED = not getgenv().ROLE_ESP_ENABLED
 getgenv().HIGHLIGHT_ME = (getgenv().HIGHLIGHT_ME == nil) and true or getgenv().HIGHLIGHT_ME
 
@@ -33,22 +33,19 @@ local function isValidCharacter(plr)
 end
 
 -- ======================
--- CLEAN SOLO SEGURO
+-- CLEAN SOLO TEXTO
 -- ======================
 local function cleanupESP()
 	for _, plr in ipairs(Players:GetPlayers()) do
 		if not isValidPlayer(plr) then
-			local esp = CoreGui:FindFirstChild(ESP_PREFIX .. plr.Name)
 			local txt = CoreGui:FindFirstChild(TEXT_PREFIX .. plr.Name)
-
-			if esp then esp:Destroy() end
 			if txt then txt:Destroy() end
 		end
 	end
 end
 
 -- ======================
--- TEXTO MURDER SIN DUPES
+-- TEXTO MURDER
 -- ======================
 local function updateText(plr, role, color, alive)
 	if not isValidPlayer(plr) or not isValidCharacter(plr) then return end
@@ -97,21 +94,20 @@ local function updateText(plr, role, color, alive)
 end
 
 -- ======================
--- ESP PRINCIPAL
+-- ESP PRINCIPAL (CAMBIO AQUÍ 🔥)
 -- ======================
 local function updateESP(plr)
 	if not isValidPlayer(plr) then return end
 	if not isValidCharacter(plr) then return end
 
-	-- 🔥 SELF FIX
-	if plr == LocalPlayer then
-		local esp = CoreGui:FindFirstChild(ESP_PREFIX .. plr.Name)
-		local txt = CoreGui:FindFirstChild(TEXT_PREFIX .. plr.Name)
+	local char = plr.Character
 
-		if getgenv().HIGHLIGHT_ME then
-			-- normal
-		else
-			if esp then esp:Destroy() end
+	-- SELF FIX
+	if plr == LocalPlayer then
+		if not getgenv().HIGHLIGHT_ME then
+			local old = char:FindFirstChild(ESP_PREFIX .. plr.Name)
+			if old then old:Destroy() end
+			local txt = CoreGui:FindFirstChild(TEXT_PREFIX .. plr.Name)
 			if txt then txt:Destroy() end
 			return
 		end
@@ -130,14 +126,14 @@ local function updateESP(plr)
 	end
 
 	local name = ESP_PREFIX .. plr.Name
-	local char = plr.Character
 
-	local hl = CoreGui:FindFirstChild(name)
+	-- 🔥 AHORA BUSCA DENTRO DEL CHARACTER
+	local hl = char:FindFirstChild(name)
 
 	if not hl then
 		hl = Instance.new("Highlight")
 		hl.Name = name
-		hl.Parent = CoreGui
+		hl.Parent = char -- 🔥 CAMBIO IMPORTANTE
 		hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
 		hl.FillTransparency = 0.5
 		hl.OutlineTransparency = 0
@@ -151,7 +147,7 @@ local function updateESP(plr)
 end
 
 -- ======================
--- 🔥 FIX TOGGLE REAL (ESTO ES LO IMPORTANTE)
+-- LOOP PRINCIPAL
 -- ======================
 task.spawn(function()
 	while true do
@@ -161,10 +157,21 @@ task.spawn(function()
 				updateESP(plr)
 			end
 		else
-			-- 🔥 BORRAR TODO INSTANTE CUANDO ESTÁ OFF
+			-- 🔥 BORRA SOLO TEXTOS (los highlights mueren con el character)
 			for _, v in ipairs(CoreGui:GetChildren()) do
-				if v.Name:match("^ROLE_ESP_") or v.Name:match("^ROLE_TEXT_") then
+				if v.Name:match("^ROLE_TEXT_") then
 					v:Destroy()
+				end
+			end
+
+			-- limpiar highlights en characters
+			for _, plr in ipairs(Players:GetPlayers()) do
+				if plr.Character then
+					for _, v in ipairs(plr.Character:GetChildren()) do
+						if v.Name:match("^ROLE_ESP_") then
+							v:Destroy()
+						end
+					end
 				end
 			end
 		end
